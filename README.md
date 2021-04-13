@@ -1,6 +1,6 @@
 # Sub Minute Lambda Executor
 
-This project contains both the CDK and AWS CloudFormation template used to create the AWS Step Function and Amazon DynamoDB to control the execution cycle. 
+This project contains both the CDK and AWS CloudFormation template used to create the AWS Step Function and Amazon DynamoDB to control the Lambda execution cycle. 
 
 ### Architecture
 <img alt="Architecture" src="./images/SubMinuteLambdaExecutor.jpg" />
