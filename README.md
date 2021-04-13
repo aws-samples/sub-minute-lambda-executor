@@ -9,7 +9,7 @@ This project contains both the CDK and AWS CloudFormation template used to creat
 * <a href="https://docs.aws.amazon.com/cdk/latest/guide/cli.html">AWS CDK Toolkit</a> (If rebuilding via CDK)
 
 ## Setup
-There are 2 methods to install this sample as listed below either via the pre-generated CloudFormation template or via CDK.
+There are 2 methods to install this sample as listed below either via the pre-generated CloudFormation template with inline Lambda functions or via CDK.
 ### CloudFormation
 1. A CloudFormation template (SubMinuteLambdaExecutor.yaml) has been pre-generated and can be used directly
 1. <a href="https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-console-create-stack.html">Follow the Creating a stack on the AWS CloudFormation console documentation</a>
