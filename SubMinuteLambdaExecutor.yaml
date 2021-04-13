@@ -1,0 +1,583 @@
+Parameters:
+  running:
+    Type: String
+    Default: "true"
+    AllowedValues:
+      - "true"
+      - "false"
+    Description: Determines if the current state of the system is running. If this value is false any attempt to start the system will immediately fail out.
+  waitseconds:
+    Type: Number
+    Default: "5"
+    Description: The timeout value in seconds between executions
+    MaxValue: 59
+    MinValue: 1
+Resources:
+  SubMinuteLambdaExecutorDB4FC2BDB5:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: "N"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: SubMinuteLambdaExecutorStack/SubMinuteLambdaExecutorDB/Resource
+  SingletonLambda73a521a79e024e80bd08c3902c1b2ee9ServiceRoleC37808DC:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: SubMinuteLambdaExecutorStack/SingletonLambda73a521a79e024e80bd08c3902c1b2ee9/ServiceRole/Resource
+  SingletonLambda73a521a79e024e80bd08c3902c1b2ee9ServiceRoleDefaultPolicy0DEB26AE:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - dynamodb:BatchGetItem
+              - dynamodb:GetRecords
+              - dynamodb:GetShardIterator
+              - dynamodb:Query
+              - dynamodb:GetItem
+              - dynamodb:Scan
+              - dynamodb:ConditionCheckItem
+              - dynamodb:BatchWriteItem
+              - dynamodb:PutItem
+              - dynamodb:UpdateItem
+              - dynamodb:DeleteItem
+            Effect: Allow
+            Resource:
+              - Fn::GetAtt:
+                  - SubMinuteLambdaExecutorDB4FC2BDB5
+                  - Arn
+              - Ref: AWS::NoValue
+        Version: "2012-10-17"
+      PolicyName: SingletonLambda73a521a79e024e80bd08c3902c1b2ee9ServiceRoleDefaultPolicy0DEB26AE
+      Roles:
+        - Ref: SingletonLambda73a521a79e024e80bd08c3902c1b2ee9ServiceRoleC37808DC
+    Metadata:
+      aws:cdk:path: SubMinuteLambdaExecutorStack/SingletonLambda73a521a79e024e80bd08c3902c1b2ee9/ServiceRole/DefaultPolicy/Resource
+  SingletonLambda73a521a79e024e80bd08c3902c1b2ee9A98C02EC:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: >
+          // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+
+          // SPDX-License-Identifier: Apache-2.0
+
+
+          const AWS = require('aws-sdk');
+
+          const ddb = new AWS.DynamoDB({ apiVersion: '2012-08-10' });
+
+          const response = require('cfn-response');
+
+
+          exports.handler = (event, context) => {
+              console.info("Event: " + JSON.stringify(event));
+              console.info("Context: " + JSON.stringify(context));
+
+              if (event.RequestType == "Create") {
+                  try {
+                      let params = {
+                          TableName: event.ResourceProperties.TableName,
+                          Item: {
+                              id: {
+                                  N: event.ResourceProperties.Id
+                              },
+                              running: {
+                                  BOOL: event.ResourceProperties.Running == 'true'
+                              },
+                              waitseconds: {
+                                  N: event.ResourceProperties.Waitseconds
+                              }
+                          }
+                      };
+                      console.info("Executing: " + JSON.stringify(params));
+                      ddb.putItem(params, function(err, res) {
+                          if (err) {
+                              console.error("Error: " + JSON.stringify(err));
+                              response.send(event, context, response.FAILED, err);
+                          } else {
+                              console.info("Success: " + JSON.stringify(res));
+                              response.send(event, context, response.SUCCESS, res);
+                          }           // successful response
+                      });
+                  } catch(err) {
+                      console.error("Error: " + JSON.stringify(err));
+                      response.send(event, context, response.FAILED, err);
+                  }
+              } else {
+                  console.info("Not a create event");
+                  response.send(event, context, response.SUCCESS, {});
+              }
+          };
+      Role:
+        Fn::GetAtt:
+          - SingletonLambda73a521a79e024e80bd08c3902c1b2ee9ServiceRoleC37808DC
+          - Arn
+      Description: Initialize the sub minute lambda execution tracking table
+      Handler: index.handler
+      Runtime: nodejs12.x
+      Timeout: 10
+    DependsOn:
+      - SingletonLambda73a521a79e024e80bd08c3902c1b2ee9ServiceRoleDefaultPolicy0DEB26AE
+      - SingletonLambda73a521a79e024e80bd08c3902c1b2ee9ServiceRoleC37808DC
+    Metadata:
+      aws:cdk:path: SubMinuteLambdaExecutorStack/SingletonLambda73a521a79e024e80bd08c3902c1b2ee9/Resource
+  SubMinuteDBInitResource:
+    Type: AWS::CloudFormation::CustomResource
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - SingletonLambda73a521a79e024e80bd08c3902c1b2ee9A98C02EC
+          - Arn
+      Running:
+        Ref: running
+      Waitseconds:
+        Ref: waitseconds
+      TableName:
+        Ref: SubMinuteLambdaExecutorDB4FC2BDB5
+      Id: 1
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+    Metadata:
+      aws:cdk:path: SubMinuteLambdaExecutorStack/SubMinuteDBInitResource/Default
+  SubMinuteDemoServiceRole1B3CDE61:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: SubMinuteLambdaExecutorStack/SubMinuteDemo/ServiceRole/Resource
+  SubMinuteDemo48042D2D:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: >
+          // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+
+          // SPDX-License-Identifier: Apache-2.0
+
+
+          exports.handler = async(event, context, callback) => {
+              console.info("Event: " + JSON.stringify(event));
+              console.info("Context: " + JSON.stringify(context));
+              await new Promise(resolve => setTimeout(resolve, 500));
+              const response = {
+                  statusCode: 200,
+                  body: JSON.stringify('Hello from Lambda!'),
+              };
+              callback(null, response);
+          };
+      Role:
+        Fn::GetAtt:
+          - SubMinuteDemoServiceRole1B3CDE61
+          - Arn
+      Handler: index.handler
+      Runtime: nodejs12.x
+    DependsOn:
+      - SubMinuteDemoServiceRole1B3CDE61
+    Metadata:
+      aws:cdk:path: SubMinuteLambdaExecutorStack/SubMinuteDemo/Resource
+  SubMinuteLambdaExecutorServiceRole0E24959B:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    Metadata:
+      aws:cdk:path: SubMinuteLambdaExecutorStack/SubMinuteLambdaExecutor/ServiceRole/Resource
+  SubMinuteLambdaExecutorServiceRoleDefaultPolicyBF6E5FB9:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - dynamodb:BatchGetItem
+              - dynamodb:GetRecords
+              - dynamodb:GetShardIterator
+              - dynamodb:Query
+              - dynamodb:GetItem
+              - dynamodb:Scan
+              - dynamodb:ConditionCheckItem
+            Effect: Allow
+            Resource:
+              - Fn::GetAtt:
+                  - SubMinuteLambdaExecutorDB4FC2BDB5
+                  - Arn
+              - Ref: AWS::NoValue
+          - Action: lambda:InvokeFunction
+            Effect: Allow
+            Resource:
+              Fn::GetAtt:
+                - SubMinuteDemo48042D2D
+                - Arn
+        Version: "2012-10-17"
+      PolicyName: SubMinuteLambdaExecutorServiceRoleDefaultPolicyBF6E5FB9
+      Roles:
+        - Ref: SubMinuteLambdaExecutorServiceRole0E24959B
+    Metadata:
+      aws:cdk:path: SubMinuteLambdaExecutorStack/SubMinuteLambdaExecutor/ServiceRole/DefaultPolicy/Resource
+  SubMinuteLambdaExecutor92D91265:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: >
+          // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+
+          // SPDX-License-Identifier: Apache-2.0
+
+
+          const AWS = require('aws-sdk');
+
+          const ddb = new AWS.DynamoDB({ apiVersion: '2012-08-10' });
+
+          const lambda = new AWS.Lambda();
+
+
+          exports.handler = async(event, context, callback) => {
+              let processStartTime = process.uptime() * 1000;
+              let loopCount = 60 * 14; // 14 mins
+              let secondsLeftBeforeExecute = 0.0;
+              let init = true;
+              let timeCorrection = 0.0;
+              let expectedExecuteTime = 0.0;
+              let executeSkew = 0.0;
+              let params = {
+                  TableName: event.tableName,
+                  Key: {
+                      "id": { N: "1" }
+                  }
+              };
+
+              let currentTS = new Date().getTime();
+              let lastExecutionTS = event.lastExecutionTS;
+              let lastExecutionDiff = lastExecutionTS > 0 ? currentTS - lastExecutionTS : 0;
+
+              let lambdaParams = {
+                  FunctionName: event.functionName, // the lambda function we are going to invoke
+                  InvocationType: 'Event',
+                  Payload: '{}'
+              };
+
+              let startLoop = process.uptime() * 1000;
+              for (let i = 0; i < loopCount; i++) {
+                  let running = false;
+                  let executeTimeout = 0;
+                  try {
+                      let data = await ddb.getItem(params).promise();
+                      running = data.Item.running.BOOL;
+                      executeTimeout = Number(data.Item.waitseconds.N);
+                      if (init) {
+                          secondsLeftBeforeExecute = executeTimeout;
+                          init = false;
+                          expectedExecuteTime = expectedExecuteTime + (executeTimeout * 1000);
+                      }
+                  }
+                  catch (err) {
+                      callback(null, {
+                          statusCode: 500,
+                          error: err,
+                          lastExecutionTS: new Date().getTime()
+                      })
+                      return;
+                  }
+                  if (running) {
+                      let dbComplete = process.uptime() * 1000;
+                      let dbExecuteTime = (dbComplete - startLoop);
+                      let timeout = 1000 - processStartTime - dbExecuteTime + timeCorrection - lastExecutionDiff;
+                      lastExecutionDiff = 0;
+                      if (timeout > 0) {
+                          await new Promise(resolve => setTimeout(resolve, timeout));
+                      }
+                      secondsLeftBeforeExecute--;
+                      if (secondsLeftBeforeExecute <= 0) {
+                          executeSkew = Number(process.uptime() * 1000) - Number(expectedExecuteTime);
+                          lambda.invoke(lambdaParams, function(err, data) {
+                              if (err) {
+                                  callback(null, {
+                                      statusCode: 500,
+                                      error: err,
+                                      lastExecutionTS: new Date().getTime()
+                                  })
+                              }
+                          });
+                          secondsLeftBeforeExecute = executeTimeout;
+                          expectedExecuteTime = expectedExecuteTime + (executeTimeout * 1000);
+                      }
+                  }
+                  else {
+                      break;
+                  }
+                  let endLoop = process.uptime() * 1000;
+                  let runtime = (endLoop - startLoop);
+                  timeCorrection = 1000 - runtime - processStartTime - executeSkew;
+                  if (timeCorrection > 0) {
+                      timeCorrection = 0;
+                  }
+                  processStartTime = 0.0;
+                  executeSkew = 0.0;
+                  startLoop = process.uptime() * 1000;
+              }
+              callback(null, {
+                  statusCode: 200,
+                  lastExecutionTS: new Date().getTime()
+              });
+          };
+      Role:
+        Fn::GetAtt:
+          - SubMinuteLambdaExecutorServiceRole0E24959B
+          - Arn
+      Handler: index.handler
+      Runtime: nodejs12.x
+      Timeout: 840
+    DependsOn:
+      - SubMinuteLambdaExecutorServiceRoleDefaultPolicyBF6E5FB9
+      - SubMinuteLambdaExecutorServiceRole0E24959B
+    Metadata:
+      aws:cdk:path: SubMinuteLambdaExecutorStack/SubMinuteLambdaExecutor/Resource
+  SubMinuteLambdaExecutorStateMachineRoleE605A2D2:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                Fn::Join:
+                  - ""
+                  - - states.
+                    - Ref: AWS::Region
+                    - .amazonaws.com
+        Version: "2012-10-17"
+    Metadata:
+      aws:cdk:path: SubMinuteLambdaExecutorStack/SubMinuteLambdaExecutorStateMachine/Role/Resource
+  SubMinuteLambdaExecutorStateMachineRoleDefaultPolicyA656C0F9:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action: dynamodb:GetItem
+            Effect: Allow
+            Resource:
+              Fn::Join:
+                - ""
+                - - "arn:"
+                  - Ref: AWS::Partition
+                  - ":dynamodb:"
+                  - Ref: AWS::Region
+                  - ":"
+                  - Ref: AWS::AccountId
+                  - :table/
+                  - Ref: SubMinuteLambdaExecutorDB4FC2BDB5
+          - Action: lambda:InvokeFunction
+            Effect: Allow
+            Resource:
+              Fn::GetAtt:
+                - SubMinuteLambdaExecutor92D91265
+                - Arn
+          - Action: states:StartExecution
+            Effect: Allow
+            Resource: "*"
+        Version: "2012-10-17"
+      PolicyName: SubMinuteLambdaExecutorStateMachineRoleDefaultPolicyA656C0F9
+      Roles:
+        - Ref: SubMinuteLambdaExecutorStateMachineRoleE605A2D2
+    Metadata:
+      aws:cdk:path: SubMinuteLambdaExecutorStack/SubMinuteLambdaExecutorStateMachine/Role/DefaultPolicy/Resource
+  SubMinuteLambdaExecutorStateMachine2317EC30:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      RoleArn:
+        Fn::GetAtt:
+          - SubMinuteLambdaExecutorStateMachineRoleE605A2D2
+          - Arn
+      DefinitionString:
+        Fn::Join:
+          - ""
+          - - '{"StartAt":"CheckInput","States":{"CheckInput":{"Type":"Choice","Choices":[{"And":[{"Variable":"$.lastExecutionTS","IsPresent":true},{"Variable":"$.lastExecutionTS","IsNull":false}],"Next":"GetRunningFlag"}],"Default":"DefaultInput"},"DefaultInput":{"Type":"Pass","Parameters":{"lastExecutionTS":"0"},"Next":"GetRunningFlag"},"GetRunningFlag":{"Next":"Parse","Catch":[{"ErrorEquals":["States.ALL"],"Next":"ErrorRecovery"}],"Type":"Task","ResultPath":"$.DynamoDB","Resource":"arn:'
+            - Ref: AWS::Partition
+            - :states:::dynamodb:getItem","Parameters":{"Key":{"id":{"N":"1"}},"TableName":"
+            - Ref: SubMinuteLambdaExecutorDB4FC2BDB5
+            - '","ConsistentRead":false}},"Parse":{"Type":"Pass","Parameters":{"lastExecutionTS.$":"$.lastExecutionTS","waitseconds.$":"States.StringToJson($.DynamoDB.Item.waitseconds.N)","statemachineId.$":"$$.StateMachine.Id","running.$":"$.DynamoDB.Item.running.BOOL"},"Next":"IsRunning"},"IsRunning":{"Type":"Choice","Choices":[{"Variable":"$.running","BooleanEquals":true,"Next":"InvokeLambda"}],"Default":"Done"},"Done":{"Type":"Pass","End":true},"InvokeLambda":{"Next":"RestartStepFunction","Retry":[{"ErrorEquals":["Lambda.ServiceException","Lambda.AWSLambdaException","Lambda.SdkClientException"],"IntervalSeconds":2,"MaxAttempts":6,"BackoffRate":2}],"Catch":[{"ErrorEquals":["States.ALL"],"Next":"ErrorRecovery"}],"Type":"Task","TimeoutSeconds":900,"ResultPath":"$.LambdaExecution","Resource":"arn:'
+            - Ref: AWS::Partition
+            - :states:::lambda:invoke","Parameters":{"FunctionName":"
+            - Fn::GetAtt:
+                - SubMinuteLambdaExecutor92D91265
+                - Arn
+            - '","Payload":{"lastExecutionTS.$":"$.lastExecutionTS","functionName":"'
+            - Ref: SubMinuteDemo48042D2D
+            - '","tableName":"'
+            - Ref: SubMinuteLambdaExecutorDB4FC2BDB5
+            - '"}}},"RestartStepFunction":{"End":true,"Parameters":{"StateMachineArn.$":"$.statemachineId","Input":{"AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$":"$$.Execution.Id","lastExecutionTS.$":"$.LambdaExecution.Payload.lastExecutionTS"}},"Type":"Task","Resource":"arn:aws:states:::states:startExecution"},"ErrorRecoveryWait":{"Type":"Wait","Seconds":5,"Next":"RestartStepFunction"},"ErrorRecovery":{"Type":"Pass","Parameters":{"statemachineId.$":"$$.StateMachine.Id","LambdaExecution":{"Payload":{"lastExecutionTS":"0"}},"lastExecutionTS":"0"},"Next":"ErrorRecoveryWait"}},"TimeoutSeconds":900}'
+      StateMachineType: STANDARD
+    DependsOn:
+      - SubMinuteLambdaExecutorStateMachineRoleDefaultPolicyA656C0F9
+      - SubMinuteLambdaExecutorStateMachineRoleE605A2D2
+    Metadata:
+      aws:cdk:path: SubMinuteLambdaExecutorStack/SubMinuteLambdaExecutorStateMachine/Resource
+  CDKMetadata:
+    Type: AWS::CDK::Metadata
+    Properties:
+      Modules: aws-cdk=1.94.1,@aws-cdk/assets=1.91.0,@aws-cdk/aws-apigateway=1.91.0,@aws-cdk/aws-apigatewayv2=1.91.0,@aws-cdk/aws-applicationautoscaling=1.91.0,@aws-cdk/aws-autoscaling=1.91.0,@aws-cdk/aws-autoscaling-common=1.91.0,@aws-cdk/aws-autoscaling-hooktargets=1.91.0,@aws-cdk/aws-batch=1.91.0,@aws-cdk/aws-certificatemanager=1.91.0,@aws-cdk/aws-cloudformation=1.91.0,@aws-cdk/aws-cloudfront=1.91.0,@aws-cdk/aws-cloudwatch=1.91.0,@aws-cdk/aws-codebuild=1.91.0,@aws-cdk/aws-codecommit=1.91.0,@aws-cdk/aws-codeguruprofiler=1.91.0,@aws-cdk/aws-cognito=1.91.0,@aws-cdk/aws-databrew=1.91.0,@aws-cdk/aws-dynamodb=1.91.0,@aws-cdk/aws-ec2=1.91.0,@aws-cdk/aws-ecr=1.91.0,@aws-cdk/aws-ecr-assets=1.91.0,@aws-cdk/aws-ecs=1.91.0,@aws-cdk/aws-efs=1.91.0,@aws-cdk/aws-eks=1.91.0,@aws-cdk/aws-elasticloadbalancing=1.91.0,@aws-cdk/aws-elasticloadbalancingv2=1.91.0,@aws-cdk/aws-events=1.91.0,@aws-cdk/aws-glue=1.91.0,@aws-cdk/aws-iam=1.91.0,@aws-cdk/aws-kms=1.91.0,@aws-cdk/aws-lambda=1.91.0,@aws-cdk/aws-logs=1.91.0,@aws-cdk/aws-route53=1.91.0,@aws-cdk/aws-route53-targets=1.91.0,@aws-cdk/aws-s3=1.91.0,@aws-cdk/aws-s3-assets=1.91.0,@aws-cdk/aws-sam=1.91.0,@aws-cdk/aws-secretsmanager=1.91.0,@aws-cdk/aws-servicediscovery=1.91.0,@aws-cdk/aws-sns=1.91.0,@aws-cdk/aws-sns-subscriptions=1.91.0,@aws-cdk/aws-sqs=1.91.0,@aws-cdk/aws-ssm=1.91.0,@aws-cdk/aws-stepfunctions=1.91.0,@aws-cdk/aws-stepfunctions-tasks=1.91.0,@aws-cdk/cloud-assembly-schema=1.91.0,@aws-cdk/core=1.91.0,@aws-cdk/custom-resources=1.91.0,@aws-cdk/cx-api=1.91.0,@aws-cdk/lambda-layer-awscli=1.91.0,@aws-cdk/lambda-layer-kubectl=1.91.0,@aws-cdk/region-info=1.91.0,jsii-runtime=Java/15.0.1
+    Metadata:
+      aws:cdk:path: SubMinuteLambdaExecutorStack/CDKMetadata/Default
+    Condition: CDKMetadataAvailable
+Outputs:
+  TableName:
+    Value:
+      Ref: SubMinuteLambdaExecutorDB4FC2BDB5
+    Export:
+      Name: TableName
+  TableArn:
+    Value:
+      Fn::GetAtt:
+        - SubMinuteLambdaExecutorDB4FC2BDB5
+        - Arn
+    Export:
+      Name: TableArn
+  DemoLambda:
+    Value:
+      Ref: SubMinuteDemo48042D2D
+    Export:
+      Name: DemoLambda
+  DemoLambdaArn:
+    Value:
+      Fn::GetAtt:
+        - SubMinuteDemo48042D2D
+        - Arn
+    Export:
+      Name: DemoLambdaArn
+  ExecutorLambda:
+    Value:
+      Ref: SubMinuteLambdaExecutor92D91265
+    Export:
+      Name: ExecutorLambda
+  ExecutorLambdaArn:
+    Value:
+      Fn::GetAtt:
+        - SubMinuteLambdaExecutor92D91265
+        - Arn
+    Export:
+      Name: ExecutorLambdaArn
+  StateMachineName:
+    Value:
+      Fn::GetAtt:
+        - SubMinuteLambdaExecutorStateMachine2317EC30
+        - Name
+    Export:
+      Name: StateMachineName
+  StateMachineArn:
+    Value:
+      Ref: SubMinuteLambdaExecutorStateMachine2317EC30
+    Export:
+      Name: StateMachineArn
+Conditions:
+  CDKMetadataAvailable:
+    Fn::Or:
+      - Fn::Or:
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - ap-east-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - ap-northeast-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - ap-northeast-2
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - ap-south-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - ap-southeast-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - ap-southeast-2
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - ca-central-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - cn-north-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - cn-northwest-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - eu-central-1
+      - Fn::Or:
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - eu-north-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - eu-west-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - eu-west-2
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - eu-west-3
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - me-south-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - sa-east-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - us-east-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - us-east-2
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - us-west-1
+          - Fn::Equals:
+              - Ref: AWS::Region
+              - us-west-2
+
