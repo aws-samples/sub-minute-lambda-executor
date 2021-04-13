@@ -13,13 +13,13 @@ There are 2 methods to install this sample as listed below either via the pre-ge
 ### CloudFormation
 1. A CloudFormation template (SubMinuteLambdaExecutor.yaml) has been pre-generated and can be used directly
 1. <a href="https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-console-create-stack.html">Follow the Creating a stack on the AWS CloudFormation console documentation</a>
-1. During the Selecting a stack template step upload the SubMinuteLambdaExecutor.yaml file provided 
-1. During the Specifying stack name and parameters step please update the "waitseconds" to the timeout required during setup
+1. During the <b>Selecting a stack template</b> step upload the SubMinuteLambdaExecutor.yaml file provided 
+1. During the <b>Specifying stack name and parameters</b> step please update the "waitseconds" to the timeout required during setup
 1. Complete the remaining steps from the documentation and wait for the stack to deploy
-1. The outputs tab of the stack information will display the table name and arn, the step function name and arn, and the Lambda function names and arns
+1. The outputs tab of the stack information will display the table name and arn, the Step Function name and arn, and the Lambda function names and arns
 ### CDK
 1. From a terminal window at the root directory of this project do ```cdk deploy```
-1. When complete a list of outputs will display the table name and arn, the step function name and arn, and the Lambda function names and arns
+1. When complete, a list of outputs will display the table name and arn, the Step Function name and arn, and the Lambda function names and arns
 
 ## Running
 1. To start the process either using the cli or console to start execution of the Step Function that was created.
