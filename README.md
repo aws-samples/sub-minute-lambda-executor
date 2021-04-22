@@ -11,37 +11,37 @@ When building applications in AWS developers may be required to poll external sy
 ### Requirements
 * <a href="https://docs.aws.amazon.com/cdk/latest/guide/cli.html">AWS CDK Toolkit</a> (Optional - Required if rebuilding via CDK)
 
-## Setup
+### Setup
 There are 2 methods to install the sample. Either via the pre-generated CloudFormation template with inline Lambda functions or via CDK.
-### CloudFormation
+#### CloudFormation
 1. A CloudFormation template (SubMinuteLambdaExecutor.yaml) has been pre-generated and can be used directly
 1. Follow the <a href="https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-console-create-stack.html">Creating a stack on the AWS CloudFormation console</a> documentation
 1. During the <b>Selecting a stack template</b> step upload the SubMinuteLambdaExecutor.yaml file provided 
 1. During the <b>Specifying stack name and parameters</b> step please update the "waitseconds" to the timeout required
 1. Complete the remaining steps from the documentation and wait for the stack to deploy
 1. The outputs tab of the stack information will display name and arn for the DynamoDB table, Lambda functions, and Step Function.
-### CDK
+#### CDK
 1. From a terminal window at the root directory of this project do ```cdk deploy```
 1. When complete, a list of outputs will display name and arn for the DynamoDB table, Lambda functions, and Step Function.
 
-## Running
+### Running
 1. To start the system, start execution of the Step Function that was created.
 1. The Step Function does not require any inputs
 
-## Stopping Execution
+### Stopping Execution
 1. To stop execution, update the DynamoDB table column value "running" to false
 
-## Resource Cleanup
-### CloudFormation
+### Resource Cleanup
+#### CloudFormation
 1. Delete the CloudFormation stack
 
-### CDK
+#### CDK
 1. From a terminal window at the root directory of this project do ```cdk destroy```
 
-## Security
+### Security
 
 See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
 
-## License
+### License
 
 This library is licensed under the MIT-0 License. See the LICENSE file.
