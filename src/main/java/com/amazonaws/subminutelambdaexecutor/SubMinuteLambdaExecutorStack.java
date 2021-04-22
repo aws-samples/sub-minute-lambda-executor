@@ -42,6 +42,11 @@ public class SubMinuteLambdaExecutorStack extends Stack {
         createStepFunction(table, subMinuteLambdaExecutorLambda, subMinuteDemoLambda);
     }
 
+    /***
+     * This method reads the contents of a file and returns it in UTF-8 encoding
+     * @param filePath The full path to the file to read
+     * @return The contents of the file
+     */
     private static String readFile(String filePath) {
         StringBuilder contentBuilder = new StringBuilder();
 
@@ -54,6 +59,11 @@ public class SubMinuteLambdaExecutorStack extends Stack {
         return contentBuilder.toString();
     }
 
+    /***
+     * Creates the DynamoDB table will is used to toggle the running state of the system
+     * and the interval of the Lambda invocation.
+     * @return DynamoDB Table
+     */
     private Table createSubMinuteDynamoDBTable() {
         CfnParameter runningParameter = CfnParameter.Builder.create(this, "running")
                 .type("String")
@@ -110,6 +120,11 @@ public class SubMinuteLambdaExecutorStack extends Stack {
         return table;
     }
 
+    /***
+     * Create the demo Lambda function which should be replaced to connect to the required external system
+     * @param table The controller DynamoDB table
+     * @return A Lambda function which is executed at specific intervals
+     */
     private Function createSubMinuteDemoLambda(Table table) {
         String functionCode = readFile("lambda/SubMinuteDemo.js");
         Function function = Function.Builder.create(this, "SubMinuteDemo")
@@ -122,6 +137,13 @@ public class SubMinuteLambdaExecutorStack extends Stack {
         return function;
     }
 
+    /***
+     * Create the Lambda executor Lambda. This Lambda is run from a step function
+     * and controls the invocation of the Lambda which call out to the external systems.
+     * @param table The controller DynamoDB table
+     * @param subMinuteDemoLambda The Lambda that this Lambda will invoke
+     * @return A Lambda used to control timing of invocation of the secondary Lambda
+     */
     private Function createSubMinuteLambdaExecutorLambda(Table table, Function subMinuteDemoLambda) {
         String functionCode = readFile("lambda/SubMinuteLambdaExecutor.js");
         Function function = Function.Builder.create(this, "SubMinuteLambdaExecutor")
@@ -137,7 +159,14 @@ public class SubMinuteLambdaExecutorStack extends Stack {
         return function;
     }
 
-    private StateMachine createStepFunction(Table table, Function function, Function demoFunction) {
+    /***
+     * Creates a step function that controls a Lambda invocation, it also checks if the system is still running
+     * by reading the DynamoDB table "running" field.
+     * @param table The controller DynamoDB table
+     * @param executorFunction The Lambda function to invoke
+     * @param demoFunction The Demo Lambda function which is invoked by subMinuteLambdaExecutorLambda
+     */
+    private void createStepFunction(Table table, Function executorFunction, Function demoFunction) {
 
         Choice choiceCheckInput = Choice.Builder.create(this, "CheckInput").build();
 
@@ -165,7 +194,7 @@ public class SubMinuteLambdaExecutorStack extends Stack {
         Choice choiceIsRunning = Choice.Builder.create(this, "IsRunning").build();
 
         LambdaInvoke lambdaInvoke = LambdaInvoke.Builder.create(this, "InvokeLambda")
-                .lambdaFunction(function)
+                .lambdaFunction(executorFunction)
                 .timeout(Duration.minutes(15))
                 .payload(TaskInput.fromObject(Map.ofEntries(
                         Map.entry("tableName", table.getTableName()),
@@ -240,6 +269,5 @@ public class SubMinuteLambdaExecutorStack extends Stack {
 
         CfnOutput.Builder.create(this, "StateMachineName").exportName("StateMachineName").value(stateMachine.getStateMachineName()).build();
         CfnOutput.Builder.create(this, "StateMachineArn").exportName("StateMachineArn").value(stateMachine.getStateMachineArn()).build();
-        return stateMachine;
     }
 }

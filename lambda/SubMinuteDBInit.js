@@ -5,6 +5,8 @@ const AWS = require('aws-sdk');
 const ddb = new AWS.DynamoDB({ apiVersion: '2012-08-10' });
 const response = require('cfn-response');
 
+// This method is run during the initial creation of the DynamoDB table and will
+// populate the table with the required row and field values
 exports.handler = (event, context) => {
     console.info("Event: " + JSON.stringify(event));
     console.info("Context: " + JSON.stringify(context));

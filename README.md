@@ -25,15 +25,15 @@ There are 2 methods to install this sample as listed below either via the pre-ge
 1. When complete, a list of outputs will display the table name and arn, the Step Function name and arn, and the Lambda function names and arns
 
 ## Running
-1. To start the process either using the cli or console to start execution of the Step Function that was created.
+1. To start the system either use the cli or console, start execution of the Step Function that was created.
 1. The Step Function does not require any inputs
 
 ## Stopping Execution
-1. To stop execution either using the cli or console update the DynamoDB table column value "running" to false
+1. To stop execution either use the cli or console, update the DynamoDB table column value "running" to false
 
 ## Resource Cleanup
 ### CloudFormation
-1. Delete the CloudFormation stack created
+1. Delete the CloudFormation stack
 
 ### CDK
 1. From a terminal window at the root directory of this project do ```cdk destroy```

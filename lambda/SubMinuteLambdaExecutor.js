@@ -5,6 +5,10 @@ const AWS = require('aws-sdk');
 const ddb = new AWS.DynamoDB({ apiVersion: '2012-08-10' });
 const lambda = new AWS.Lambda();
 
+// This Lambda will control the asynchronous invocation of the given Lambda
+// which will then perform the operation to call the external system.
+// This Lambda is setup to have a 15 minute runtime. Internally we loop until 14 minutes
+// to avoid going over the 15 minute max Lambda execution time.
 exports.handler = async(event, context, callback) => {
     let processStartTime = process.uptime() * 1000;
     let loopCount = 60 * 14; // 14 mins
