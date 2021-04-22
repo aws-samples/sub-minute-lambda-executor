@@ -4,10 +4,9 @@ When building applications in AWS developers may be required to poll external sy
 ### Architecture
 <img alt="Architecture" src="./images/SubMinuteLambdaExecutor.jpg" />
 
-### Services
 1. <a href="https://aws.amazon.com/step-functions/">AWS Step Functions</a> are used to invoke a Lambda function which controls the final Lambda execution. The AWS Step Function will restart itself once the Lambda completes its execution.
 1. <a href="https://aws.amazon.com/lambda/">AWS Lambda</a> is used to control the timing and final asynchronous execution of the worker Lambda which will perform the operation required for the external system.
-2. <a href="https://aws.amazon.com/dynamodb/">Amazon DynamoDB</a> is used to store control flags such as if the system is running and also the interval at which the work Lambda should be invoked. 
+1. <a href="https://aws.amazon.com/dynamodb/">Amazon DynamoDB</a> is used to store control flags such as if the system is running and also the interval at which the work Lambda should be invoked. 
 
 ### Requirements
 * <a href="https://docs.aws.amazon.com/cdk/latest/guide/cli.html">AWS CDK Toolkit</a> (If rebuilding via CDK)
