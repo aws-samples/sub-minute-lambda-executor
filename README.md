@@ -4,32 +4,32 @@ When building applications in AWS developers may be required to poll external sy
 ### Architecture
 <img alt="Architecture" src="./images/SubMinuteLambdaExecutor.jpg" />
 
-1. <a href="https://aws.amazon.com/step-functions/">AWS Step Functions</a> are used to invoke a Lambda function which controls the final Lambda execution. The AWS Step Function will restart itself once the Lambda completes its execution.
+1. <a href="https://aws.amazon.com/step-functions/">AWS Step Functions</a> are used to invoke a Lambda function which controls the final Lambda execution. The AWS Step Function will restart itself once the Lambda completes.
 1. <a href="https://aws.amazon.com/lambda/">AWS Lambda</a> is used to control the timing and final asynchronous execution of the worker Lambda which will perform the operation required for the external system.
-1. <a href="https://aws.amazon.com/dynamodb/">Amazon DynamoDB</a> is used to store control flags such as if the system is running and also the interval at which the work Lambda should be invoked. 
+1. <a href="https://aws.amazon.com/dynamodb/">Amazon DynamoDB</a> is used to store control flags. The "running" determines if the flow you continue to run, and waitseconds is used to determine the period between worker Lambda invocations. 
 
 ### Requirements
-* <a href="https://docs.aws.amazon.com/cdk/latest/guide/cli.html">AWS CDK Toolkit</a> (If rebuilding via CDK)
+* <a href="https://docs.aws.amazon.com/cdk/latest/guide/cli.html">AWS CDK Toolkit</a> (Optional - Required if rebuilding via CDK)
 
 ## Setup
-There are 2 methods to install this sample as listed below either via the pre-generated CloudFormation template with inline Lambda functions or via CDK.
+There are 2 methods to install the sample. Either via the pre-generated CloudFormation template with inline Lambda functions or via CDK.
 ### CloudFormation
 1. A CloudFormation template (SubMinuteLambdaExecutor.yaml) has been pre-generated and can be used directly
-1. <a href="https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-console-create-stack.html">Follow the Creating a stack on the AWS CloudFormation console documentation</a>
+1. Follow the <a href="https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-console-create-stack.html">Creating a stack on the AWS CloudFormation console</a> documentation
 1. During the <b>Selecting a stack template</b> step upload the SubMinuteLambdaExecutor.yaml file provided 
-1. During the <b>Specifying stack name and parameters</b> step please update the "waitseconds" to the timeout required during setup
+1. During the <b>Specifying stack name and parameters</b> step please update the "waitseconds" to the timeout required
 1. Complete the remaining steps from the documentation and wait for the stack to deploy
-1. The outputs tab of the stack information will display the table name and arn, the Step Function name and arn, and the Lambda function names and arns
+1. The outputs tab of the stack information will display name and arn for the DynamoDB table, Lambda functions, and Step Function.
 ### CDK
 1. From a terminal window at the root directory of this project do ```cdk deploy```
-1. When complete, a list of outputs will display the table name and arn, the Step Function name and arn, and the Lambda function names and arns
+1. When complete, a list of outputs will display name and arn for the DynamoDB table, Lambda functions, and Step Function.
 
 ## Running
-1. To start the system either use the cli or console, start execution of the Step Function that was created.
+1. To start the system, start execution of the Step Function that was created.
 1. The Step Function does not require any inputs
 
 ## Stopping Execution
-1. To stop execution either use the cli or console, update the DynamoDB table column value "running" to false
+1. To stop execution, update the DynamoDB table column value "running" to false
 
 ## Resource Cleanup
 ### CloudFormation
